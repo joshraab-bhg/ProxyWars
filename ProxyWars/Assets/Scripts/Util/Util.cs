@@ -62,6 +62,10 @@ public static class Util {
 	public static float GetInfluencePercentage (int rawInfluence) { 
 		float fMaxInfluence = (float) Util.GetMain ().gs.MaxInfluence;
 		return ((float) rawInfluence) / fMaxInfluence * 100f;
+	}
+
+	public static int GetPerc (int num, float perc) {
+		return (int) ((float)num * perc);
 
 	}
 }

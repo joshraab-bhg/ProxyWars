@@ -3,7 +3,7 @@ using System.Collections;
 
 public class ModeResourceData : MonoBehaviour {
 
-	public ResourceType ResourceType;
+	public ResourceType Type;
 	public int StartingAmount;
 	public int AmountGenerated;
 	public int ResourceCap;
