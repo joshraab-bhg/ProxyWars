@@ -14,6 +14,7 @@ public enum Faction {
 }
 
 public enum ResourceType {
+	None,
 	Troops,
 	Food,
 	Gold,

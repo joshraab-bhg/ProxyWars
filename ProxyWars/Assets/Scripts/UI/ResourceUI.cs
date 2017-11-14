@@ -4,6 +4,8 @@ using System.Collections;
 
 public class ResourceUI : MonoBehaviour {
 
+	public Main main;
+
 	public ResourceType Resource;
 	public SpriteRenderer ResourceIcon;
 	public Text NumberOwnedText;
@@ -14,6 +16,10 @@ public class ResourceUI : MonoBehaviour {
 	public Text CrownCostText;
 	public Text ResourcesFromPurchaseText;
 	private bool fadingOut;
+
+	void Awake () {
+		main = Util.GetMain ();
+	}
 
 	void Update () {
 		/*
@@ -28,7 +34,6 @@ public class ResourceUI : MonoBehaviour {
 	}
 
 	public void Setup (ResourceType type) {
-		Main main = Util.GetMain ();
 		ResourceData resourceData = main.resourceLibrary.GetResourceData (type);
 		ModeResourceData modeResourceData = Util.GetCurrentGameModeData ().GetResourceData (type);
 
@@ -39,5 +44,11 @@ public class ResourceUI : MonoBehaviour {
 		CrownIcon.sprite = main.l.CrownSprite;
 		CrownCostText.text = resourceData.CrownCost + "";
 		ResourcesFromPurchaseText.text = "(+" + modeResourceData.GetResourcesFromPurchase () + ")";
+	}
+
+	public void UpdateUI () {
+		NumberOwnedText.text = main.p.GetResourceDictionary () [Resource] + "";
+		CrownOutline.gameObject.SetActive (main.p.CanPurchase (Resource));
+
 	}
 }

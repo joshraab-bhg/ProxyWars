@@ -10,6 +10,10 @@ public abstract class GameModeData : MonoBehaviour {
 	public int StartingCrowns;
 	public int ResourcePercentageFilledOnPurchase;
 
+	public int TroopTrainCost;
+	public ResourceType TroopTrainResource;
+	public int TroopsTrained;
+
 	public int EnemyInfluence_Seconds;
 	public int EnemyInfluence_Percentage;
 

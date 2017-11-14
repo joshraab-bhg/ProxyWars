@@ -4,19 +4,25 @@ using System.Collections.Generic;
 
 public class ResourceUIManager : MonoBehaviour {
 
-	private Main main;
-
 	public ResourceType[] ResourcesInUse;
 	public GameObject ResourceContainer;
-	public Dictionary<ResourceType, ResourceUI> ResourceUIList; 
+	public ResourceUI[] ResourceUIList;
 
 	public const int RESOURCE_UI_Y_OFFSET = 45;
 
 	void Awake () {
-		main = Util.GetMain ();
-		float curY = ResourceContainer.transform.position.y;
-		ResourceUIList = new Dictionary<ResourceType, ResourceUI> ();
+		foreach (ResourceUI r in ResourceUIList) {
+			if (r.Resource != ResourceType.None) {
+				r.Setup (r.Resource);
+			}
+			else {
+				Debug.LogWarning ("Resource UI did not have resource type set");
+			}
+		}
 
+//		float curY = ResourceContainer.transform.position.y;
+
+		/*
 		List<ResourceType> resourcesUsed = new List<ResourceType> ();
 
 		foreach (ResourceType nextResource in ResourcesInUse) {
@@ -33,14 +39,12 @@ public class ResourceUIManager : MonoBehaviour {
 			ResourceUIList.Add (nextResource, go.GetComponent <ResourceUI> ());
 			curY -= RESOURCE_UI_Y_OFFSET;
 		}
+		*/
 	}
 
 	public void UpdateResourceUI () {
-		foreach (ResourceType resource in ResourceUIList.Keys) {
-			if (main.p.GetResourceDictionary ().ContainsKey (resource)) {
-				ResourceUIList [resource].NumberOwnedText.text = main.p.GetResourceDictionary () [resource] + "";
-				ResourceUIList [resource].CrownOutline.gameObject.SetActive (main.p.CanPurchase (resource));
-			}
+		foreach (ResourceUI r in ResourceUIList) {
+			r.UpdateUI ();
 		}
 	}
 }
