@@ -25,6 +25,8 @@ public class Player : MonoBehaviour {
 
 	void Update () {
 		checkStorePurchases ();
+		checkTroopTrain ();
+		checkAttack ();
 	}
 
 	public void SecondTick () {
@@ -107,27 +109,17 @@ public class Player : MonoBehaviour {
 			Vector2 worldPos = new Vector2 (Camera.main.ScreenToWorldPoint (Input.mousePosition).x, Camera.main.ScreenToWorldPoint (Input.mousePosition).y);
 			RaycastHit2D hit = Physics2D.Raycast (worldPos, Vector2.zero, 10000, 1 << LayerMask.NameToLayer ("Clickables"));
 			if (hit.collider != null) {
-
 				GameObject go = hit.collider.gameObject;
+
 				if (go.GetComponent<PurchaseButton> () != null) {
-					attemptToPurchase (go.GetComponent<PurchaseButton> ().GetResourceType ());
+					attemptToCrownPurchase (go.GetComponent<PurchaseButton> ().GetResourceType ());
 				}
 			}
 		}
 	}
-
-	public bool CanPurchase (ResourceType resource) {
-		bool atCap = resources [resource] >= Util.GetCurrentGameModeData ().GetResourceData (resource).ResourceCap;
-		if (atCap) {
-			return false;
-		}
-
-		bool hasEnoughCrowns = crowns >= main.resourceLibrary.GetResourceData (resource).CrownCost;
-		return (main.gs.FreePurchases || hasEnoughCrowns);
-	}
-
-	private void attemptToPurchase (ResourceType resource) {
-		if (CanPurchase (resource)) {
+		
+	private void attemptToCrownPurchase (ResourceType resource) {
+		if (CanCrownPurchase (resource)) {
 			if (!main.gs.FreePurchases) {
 				SpendCrowns (main.resourceLibrary.GetResourceData (resource).CrownCost);
 			}
@@ -138,4 +130,56 @@ public class Player : MonoBehaviour {
 			// Figure out why you can't purchase and show appropriate UI
 		}
 	}
+
+	public bool CanCrownPurchase (ResourceType resource) {
+		bool atCap = resources [resource] >= Util.GetCurrentGameModeData ().GetResourceData (resource).ResourceCap;
+		if (atCap) {
+			return false;
+		}
+
+		bool hasEnoughCrowns = crowns >= main.resourceLibrary.GetResourceData (resource).CrownCost;
+		return (main.gs.FreePurchases || hasEnoughCrowns);
+	}
+		
+	private void checkTroopTrain () {
+		if (Input.GetMouseButtonDown (0)) {
+			Vector2 worldPos = new Vector2 (Camera.main.ScreenToWorldPoint (Input.mousePosition).x, Camera.main.ScreenToWorldPoint (Input.mousePosition).y);
+			RaycastHit2D hit = Physics2D.Raycast (worldPos, Vector2.zero, 10000, 1 << LayerMask.NameToLayer ("Clickables"));
+			if (hit.collider != null) {
+				GameObject go = hit.collider.gameObject;
+
+				if (go.GetComponent<TroopTrainButton> () != null) {
+					attemptToTrainTroops ();
+				}
+			}
+		}
+	}
+
+	// Right now you can only train troops with 1 resource
+	private void attemptToTrainTroops () {
+		GameModeData gmData = Util.GetCurrentGameModeData ();
+
+		if (CanTrainTroops ()) {
+			SpendResource (gmData.TroopTrainResource, gmData.TroopTrainCost);
+			GainResource (ResourceType.Troops, gmData.TroopsTrained);
+		}
+	}
+
+	public bool CanTrainTroops () {
+		GameModeData gmData = Util.GetCurrentGameModeData ();
+
+		bool atCap = resources [ResourceType.Troops] >= gmData.GetResourceData (ResourceType.Troops).ResourceCap;
+		if (atCap) {
+			return false;
+		}
+
+		ResourceType trainingResource = gmData.TroopTrainResource;
+		bool hasEnoughFood = resources [trainingResource] >= gmData.TroopTrainCost;
+		return (hasEnoughFood);
+	}
+
+	private void checkAttack () {
+
+	}
+
 }

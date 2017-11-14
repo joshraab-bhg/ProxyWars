@@ -28,3 +28,8 @@ public enum MissionStatus {
 	NotEnoughResources,
 	CanCompleteMission
 }
+
+public enum AttackType {
+	Raid,
+	Assault
+}

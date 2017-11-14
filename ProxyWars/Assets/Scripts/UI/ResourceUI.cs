@@ -48,7 +48,7 @@ public class ResourceUI : MonoBehaviour {
 
 	public void UpdateUI () {
 		NumberOwnedText.text = main.p.GetResourceDictionary () [Resource] + "";
-		CrownOutline.gameObject.SetActive (main.p.CanPurchase (Resource));
+		CrownOutline.gameObject.SetActive (main.p.CanCrownPurchase (Resource));
 
 	}
 }
