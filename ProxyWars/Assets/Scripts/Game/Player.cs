@@ -207,7 +207,7 @@ public class Player : MonoBehaviour {
 		ModeAttackData data = Util.GetCurrentGameModeData ().GetAttackData (type);
 		return resources [ResourceType.Troops] >= data.TroopsRequired;
 	}
-	as
+
 	private void doAttack (AttackType type) {
 		ModeAttackData data = Util.GetCurrentGameModeData ().GetAttackData (type);
 
