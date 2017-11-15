@@ -3,8 +3,7 @@ using System.Collections;
 
 public class Tile : MonoBehaviour {
 
-	public int X;
-	public int Y;
+	public Vector2 coordinates;
 
 	private City city;
 

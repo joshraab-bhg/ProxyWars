@@ -11,6 +11,9 @@ public class Map : MonoBehaviour {
 
 	public Tile[,] TileGrid;
 	public List<City> Cities;
+	public List<City> CitiesOnLeft = new List<City>();
+	public List<City> CitiesOnRight = new List<City>();
+
 	public City PlayerStartCity;
 	public City EnemyStartCity;
 
