@@ -8,6 +8,8 @@ public class MapGenerator : MonoBehaviour {
 	Map map;
 	MapSettings ms;
 
+	private int counter = 1;
+
 	void Awake () {
 		main = Util.GetMain ();
 		map = Util.GetMap ();
@@ -19,7 +21,73 @@ public class MapGenerator : MonoBehaviour {
 		spawnCities ();
 		spawnConnections ();
 		ensureConnectivity ();
+		//ensureBiConnectedness();
 		setCamera ();
+	}
+
+	private void ensureBiConnectedness()
+	{
+		foreach(City city in map.Cities)
+		{
+			//Do djikstras to each city, if the path goes through the opposite city on the way, then we need to make a new connection to a node that is on the way to the targeted starting city 
+			BFSWithPassThroughCheck(city, map.PlayerStartCity, map.EnemyStartCity);
+			//Do djikstras to the right city
+
+			//Check if it goes through the closest city on the way
+
+			//Do djikstras to the left city
+			
+			//Check if it goes through the closest city on the way
+
+		}
+	}
+
+	/// <summary>
+	/// 
+	/// </summary>
+	/// <param name="u">The start city</param>
+	/// <param name="v">The end city</param>
+	/// <param name="onTheWayCity">The city that we are deciding is on the path or not</param>
+	/// <returns></returns>
+	private bool BFSWithPassThroughCheck(City u, City v, City onTheWayCity)
+	{
+		Dictionary<City, City> prev = new Dictionary<City, City>();
+		Dictionary<City, bool> flag = new Dictionary<City, bool>();
+
+		List<City> cities = u.GetConnectedCities();
+		foreach(City city in map.Cities)
+		{
+			prev.Add(city, null);
+			flag.Add(city, false);
+		}
+		Queue<City> queue = new Queue<City>();
+		flag[u] = true;
+		queue.Enqueue(u);
+		while(queue.Count > 0)
+		{
+			City c = queue.Dequeue();
+			foreach(City city in c.GetConnectedCities())
+			{
+				if(flag[city] == false)
+				{
+					flag[city] = true;
+					prev[city] = c;
+					queue.Enqueue(city);
+				}
+			}
+		}
+
+		//Trace back
+		City traceBack = v;
+		while(prev[traceBack] != null)
+		{
+			if(traceBack == onTheWayCity)
+			{
+				//return false;
+			}
+		}
+
+		return false;
 	}
 
 	private void spawnTiles () {
@@ -473,6 +541,8 @@ public class MapGenerator : MonoBehaviour {
 		map.Cities.Add (city);
 		city.SetTile (map.TileGrid [x, y]);
 		city.SetOwner (f);
+		city.cityId = counter;
+		counter++;
 		if (f != Faction.Neutral) {
 			city.IM.SetCompleteControl (f);
 		}

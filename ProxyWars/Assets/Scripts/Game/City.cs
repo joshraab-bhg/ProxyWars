@@ -1,4 +1,5 @@
 ﻿using UnityEngine;
+using UnityEngine.UI;
 using System.Collections;
 using System.Collections.Generic;
 
@@ -13,6 +14,8 @@ public class City : MonoBehaviour {
 	public Faction Owner;
 	public InfluenceManager IM;
 	public MissionManager MM;
+
+	public int cityId;
 
 	private Tile tile;
 	private List<City> connectedCities = new List<City> ();
