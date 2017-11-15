@@ -10,7 +10,7 @@ public class ResourceUIManager : MonoBehaviour {
 
 	public const int RESOURCE_UI_Y_OFFSET = 45;
 
-	void Awake () {
+	void Start () {
 		foreach (ResourceUI r in ResourceUIList) {
 			if (r.Resource != ResourceType.None) {
 				r.Setup (r.Resource);
