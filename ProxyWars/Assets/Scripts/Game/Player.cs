@@ -11,34 +11,6 @@ public class Player : MonoBehaviour {
 
 	private int resourceGainTime;
 
-	// lol this cannot be the right way to do this
-	public const float LOOT_PERC_RAID_FAILED_MIN = 0f;
-	public const float LOOT_PERC_RAID_FAILED_MAX = 0.1f;
-
-	public const float LOOT_PERC_RAID_MODERATE_SUCCESS_MIN = 0.4f;
-	public const float LOOT_PERC_RAID_MODERATE_SUCCESS_MAX = 0.6f;
-
-	public const float LOOT_PERC_RAID_GREAT_SUCCESS_MIN = 0.8f;
-	public const float LOOT_PERC_RAID_GREAT_SUCCESS_MAX = 1f;
-
-	public const float LOOT_PERC_ASSAULT_0_STARS_MIN = 0.1f;
-	public const float LOOT_PERC_ASSAULT_0_STARS_MAX = 0.2f;
-
-	public const float LOOT_PERC_ASSAULT_1_STARS_MIN = 0.25f;
-	public const float LOOT_PERC_ASSAULT_1_STARS_MAX = 0.35f;
-
-	public const float LOOT_PERC_ASSAULT_2_STARS_MIN = 0.4f;
-	public const float LOOT_PERC_ASSAULT_2_STARS_MAX = 0.5f;
-
-	public const float LOOT_PERC_ASSAULT_3_STARS_MIN = 0.55f;
-	public const float LOOT_PERC_ASSAULT_3_STARS_MAX = 0.65f;
-
-	public const float LOOT_PERC_ASSAULT_4_STARS_MIN = 0.7f;
-	public const float LOOT_PERC_ASSAULT_4_STARS_MAX = 0.8f;
-
-	public const float LOOT_PERC_ASSAULT_5_STARS_MIN = 0.9f;
-	public const float LOOT_PERC_ASSAULT_5_STARS_MAX = 1f;
-
 	void Awake () {
 		main = Util.GetMain ();
 		resources = new Dictionary<ResourceType, int> ();
@@ -224,20 +196,7 @@ public class Player : MonoBehaviour {
 
 	private void attemptToAttack (AttackType type) {
 		if (CanAttack (type)) {
-			ModeAttackData data = Util.GetCurrentGameModeData ().GetAttackData (type);
-
-			// Determine success, troops lost, and loot gained
-			switch (type) {
-			case AttackType.Raid:
-				doRaid ();
-				break;
-			case AttackType.Assault:
-				doAssault ();
-				break;
-			default:
-				Debug.LogWarning ("Unsupported attack type");
-				break;
-			}
+			doAttack (type);
 		}
 		else {
 			// Figure out why you can't attack and show appropriate UI
@@ -246,45 +205,21 @@ public class Player : MonoBehaviour {
 
 	public bool CanAttack (AttackType type) {
 		ModeAttackData data = Util.GetCurrentGameModeData ().GetAttackData (type);
-		return (resources [ResourceType.Troops] >= data.TroopsRequired);
+		return resources [ResourceType.Troops] >= data.TroopsRequired;
 	}
 
-	private void doRaid () {
-		/* A raid simulates throwing soldiers/raiders at an enemy base with no expectation of survival.
-		 * They have 3 degrees of success: failure (0), moderate success (1), and great success (2).
-		 * The degree of success determines how much loot you get.
-		 * However, like in a real DomiNations raid, you always lose all troops committed.
-		 */
+	private void doAttack (AttackType type) {
+		ModeAttackData data = Util.GetCurrentGameModeData ().GetAttackData (type);
 
-		ModeAttackData data = Util.GetCurrentGameModeData ().GetAttackData (AttackType.Raid);
+		int foodGained = Random.Range (data.MinFoodGained, data.MaxFoodGained + 1);
+		int goldGained = Random.Range (data.MinGoldGained, data.MaxGoldGained + 1);
+		int TGsGained = Random.Range (data.MinTGsGained, data.MaxTGsGained + 1);
 
-		int success = Random.Range (0, 3);
-
-		if (success == 0) {
-			// Failure - you get 0-10% of max resources
-			float perc = 0.1f;
-			int maxFood = Util.GetPerc (data.MaxFoodGained, perc);
-			int maxGold = Util.GetPerc (data.MaxGoldGained, perc);
-			int maxTGs = Util.GetPerc (data.MaxTGsGained, perc);
-
-
-		}
-		else if (success == 1) {	// Moderate success
-
-		}
-		else {						// Great success
-
-		}
+		GainResource (ResourceType.Food, foodGained);
+		GainResource (ResourceType.Gold, goldGained);
+		GainResource (ResourceType.TradeGoods, TGsGained);
 
 		int troopsSent = data.TroopsRequired;
 		resources [ResourceType.Troops] -= troopsSent;
-	}
-
-	private void doAssault () {
-		/* Assaults simulate a full attack with your entire army.
-		 * They have 6 degrees of success (1 each for 0-5 stars).
-		 * The degree of success determines how much loot you get.
-		 * On a 5-star success, some troops return. Otherwise they all die.
-		 */
 	}
 }
