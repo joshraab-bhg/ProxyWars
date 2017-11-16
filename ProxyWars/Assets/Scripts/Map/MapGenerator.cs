@@ -23,19 +23,19 @@ public class MapGenerator : MonoBehaviour {
 
 	private int counter = 1;
 
-	void Awake () {
-		main = Util.GetMain ();
-		map = Util.GetMap ();
+	void Awake() {
+		main = Util.GetMain();
+		map = Util.GetMap();
 		ms = main.ms;
 	}
 
-	public void GenerateNewMap () {
-		spawnTiles ();
-		spawnCities ();
-		spawnConnections ();
-		ensureConnectivity ();
+	public void GenerateNewMap() {
+		spawnTiles();
+		spawnCities();
+		spawnConnections();
+		ensureConnectivity();
 		ensureMultiplePaths();
-		setCamera ();
+		setCamera();
 	}
 
 	private void ensureMultiplePaths()
@@ -53,10 +53,10 @@ public class MapGenerator : MonoBehaviour {
 			sparseCities[city.cityId] = sparseCity;
 		}
 		//Make edges 
-		foreach(City city in map.Cities)
+		foreach (City city in map.Cities)
 		{
 			SparseCity equivalentCity = sparseCities[city.cityId];
-			foreach(City connectedCity in city.GetConnectedCities())
+			foreach (City connectedCity in city.GetConnectedCities())
 			{
 				equivalentCity.connectedCities.Add(sparseCities[connectedCity.cityId]);
 			}
@@ -96,24 +96,42 @@ public class MapGenerator : MonoBehaviour {
 
 		Debug.Log("Number of distinct paths is: " + counter);
 
-		if(counter < ms.NumDistinctPathsBetweenBaseCities)
+		foreach (KeyValuePair<SparseCity, SparseCity> edge in removedEdges)
+		{
+			SparseCity u = edge.Key;
+			SparseCity v = edge.Value;
+			u.connectedCities.Add(v);
+			v.connectedCities.Add(u);
+		}
+		removedEdges.Clear();
+
+		foreach (SparseCity city in sparseCities.Values)
+		{
+			bool passesThrough = false;
+			if(city.cityId == 1 || city.cityId == 2)
+			{
+				continue;
+			}
+			passesThrough = FindShortestPathCheckIfPassThrough(city, sparseCities[map.PlayerStartCity.cityId], sparseCities[map.EnemyStartCity.cityId], sparseCities);
+			passesThrough = FindShortestPathCheckIfPassThrough(city, sparseCities[map.EnemyStartCity.cityId], sparseCities[map.PlayerStartCity.cityId], sparseCities);
+			if(passesThrough == true)
+			{
+				//try a new graph
+				main.ReloadScene();
+
+			}
+		}
+		if (counter < ms.NumDistinctPathsBetweenBaseCities)
 		{
 			//Just reload the scene and hope the new map is better
 			main.ReloadScene();
 			//Create some new paths? 
 			//Figure out which node on the left side is closest to the right side distance wise that is farthest away from the enemy base?
 
-			/* //Restore all edges
-			 foreach(KeyValuePair<SparseCity, SparseCity> edge in removedEdges)
-			 {
-				 SparseCity u = edge.Key;
-				 SparseCity v = edge.Value;
-				 u.connectedCities.Add(v);
-				 v.connectedCities.Add(u);
-			 }
-			 removedEdges.Clear();
+			//Restore all edges
 
-			 //Pick a vertex on the left and one on the right and join them together, test how many disjoint paths there are and if the number is satisfactory then add it to the real graph, otherwise, remove it and then try with two different cities
+
+			/* //Pick a vertex on the left and one on the right and join them together, test how many disjoint paths there are and if the number is satisfactory then add it to the real graph, otherwise, remove it and then try with two different cities
 			 // This is terrible but not sure of a better way right now x_x [AT] 
 
 			 //Pick a vertex on left that is rightmost that is not connected to a node to it's right and build a small list and do the same on the right side... then join them together if they are approximately height level with eachother.
@@ -189,10 +207,35 @@ public class MapGenerator : MonoBehaviour {
 
 	}
 
-	private int FindDisjointPaths()
+	private bool FindShortestPathCheckIfPassThrough(SparseCity u, SparseCity v, SparseCity passThrough, Dictionary<int, SparseCity> sparseCities)
 	{
-		return 0;
+		Queue<SparseCity> path = BFS(u, v, sparseCities);
+		StringBuilder shortestPath = new StringBuilder();
+		if (path.Count > 0)
+		{
+			counter++;
+			SparseCity x, y;
+			x = sparseCities[u.cityId];
+			y = path.Dequeue();
+			while (y != null)
+			{
+				Debug.Log("Comparing: " + y.cityId + " " + passThrough.cityId);
+				if (y == passThrough) {
+					return true; 
+				}
+				x = y;
+				shortestPath.AppendFormat("{0}->", x.cityId);
+				if (path.Count == 0)
+				{
+					break;
+				}
+				y = path.Dequeue();
+			}
+		}
+		Debug.Log("path from: " + u.cityId + " to: " + v.cityId + " is: " + shortestPath.ToString());
+		return false;
 	}
+
 
 	private Queue<SparseCity> BFS(SparseCity u, SparseCity v, Dictionary<int, SparseCity> sparseCities)
 	{
@@ -232,9 +275,8 @@ public class MapGenerator : MonoBehaviour {
 			x = path[x];
 		}
 		SparseCity lastCity = cityStack.Peek();
-		if(lastCity.cityId != u.cityId)
+		if (lastCity.cityId != u.cityId)
 		{
-			Debug.Log("no path found");
 			finalPath.Clear();
 			return finalPath;
 		}
@@ -256,6 +298,7 @@ public class MapGenerator : MonoBehaviour {
 		}
 		return finalPath;
 	}
+
 
 	private Queue<City> BFS(City u, City v)
 	{
