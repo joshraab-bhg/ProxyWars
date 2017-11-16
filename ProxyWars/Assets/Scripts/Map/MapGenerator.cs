@@ -219,7 +219,6 @@ public class MapGenerator : MonoBehaviour {
 			y = path.Dequeue();
 			while (y != null)
 			{
-				Debug.Log("Comparing: " + y.cityId + " " + passThrough.cityId);
 				if (y == passThrough) {
 					return true; 
 				}
@@ -232,7 +231,7 @@ public class MapGenerator : MonoBehaviour {
 				y = path.Dequeue();
 			}
 		}
-		Debug.Log("path from: " + u.cityId + " to: " + v.cityId + " is: " + shortestPath.ToString());
+		//Debug.Log("path from: " + u.cityId + " to: " + v.cityId + " is: " + shortestPath.ToString());
 		return false;
 	}
 
