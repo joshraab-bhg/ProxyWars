@@ -8,10 +8,9 @@ public class EnemyCircle : MonoBehaviour
 	public float yradius;
 	LineRenderer line;
 
-	void Start ()
+	void Awake ()
 	{
-		line = gameObject.GetComponent<LineRenderer>();
-
+		line = gameObject.GetComponent<LineRenderer> ();
 		line.SetVertexCount (segments + 1);
 		line.useWorldSpace = false;
 		CreatePoints ();

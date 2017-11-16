@@ -8,5 +8,5 @@ public class MapSettings : MonoBehaviour {
 
 	public int NumCities;
 	public int MinDistanceBetweenCities;
-
+	public int NumDistinctPathsBetweenBaseCities;
 }

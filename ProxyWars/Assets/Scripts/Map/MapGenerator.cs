@@ -1,6 +1,19 @@
 ﻿using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
+using System.Text;
+
+public class SparseCity
+{
+	public List<SparseCity> connectedCities;
+	public Vector2 location;
+	public int cityId;
+
+	public SparseCity()
+	{
+		connectedCities = new List<SparseCity>();
+	}
+}
 
 public class MapGenerator : MonoBehaviour {
 
@@ -21,73 +34,286 @@ public class MapGenerator : MonoBehaviour {
 		spawnCities ();
 		spawnConnections ();
 		ensureConnectivity ();
-		//ensureBiConnectedness();
+		ensureMultiplePaths();
 		setCamera ();
 	}
 
-	private void ensureBiConnectedness()
+	private void ensureMultiplePaths()
 	{
+		//Create a copy of the entire map stuff so that we can play on it without destroying the original
+		Dictionary<int, SparseCity> sparseCities = new Dictionary<int, SparseCity>();
+		//Populate vertices
+		foreach (City city in map.Cities)
+		{
+			SparseCity sparseCity = new SparseCity
+			{
+				cityId = city.cityId,
+				location = city.GetTile().coordinates
+			};
+			sparseCities[city.cityId] = sparseCity;
+		}
+		//Make edges 
 		foreach(City city in map.Cities)
 		{
-			//Do djikstras to each city, if the path goes through the opposite city on the way, then we need to make a new connection to a node that is on the way to the targeted starting city 
-			BFSWithPassThroughCheck(city, map.PlayerStartCity, map.EnemyStartCity);
-			//Do djikstras to the right city
-
-			//Check if it goes through the closest city on the way
-
-			//Do djikstras to the left city
-			
-			//Check if it goes through the closest city on the way
-
+			SparseCity equivalentCity = sparseCities[city.cityId];
+			foreach(City connectedCity in city.GetConnectedCities())
+			{
+				equivalentCity.connectedCities.Add(sparseCities[connectedCity.cityId]);
+			}
 		}
+		bool foundPath = true;
+		int counter = 0;
+		//Look for all paths to the other city
+		List<KeyValuePair<SparseCity, SparseCity>> removedEdges = new List<KeyValuePair<SparseCity, SparseCity>>();
+		while (foundPath)
+		{
+			Queue<SparseCity> path = BFS(sparseCities[map.PlayerStartCity.cityId], sparseCities[map.EnemyStartCity.cityId], sparseCities);
+			//Remove edges along path
+			if (path.Count > 0)
+			{
+				counter++;
+				SparseCity u, v;
+				u = sparseCities[map.PlayerStartCity.cityId];
+				v = path.Dequeue();
+				while (v != null)
+				{
+					removedEdges.Add(new KeyValuePair<SparseCity, SparseCity>(u, v));
+					u.connectedCities.Remove(v);
+					v.connectedCities.Remove(u);
+					u = v;
+					if (path.Count == 0)
+					{
+						break;
+					}
+					v = path.Dequeue();
+				}
+			}
+			else
+			{
+				foundPath = false;
+			}
+		}
+
+		Debug.Log("Number of distinct paths is: " + counter);
+
+		if(counter < ms.NumDistinctPathsBetweenBaseCities)
+		{
+			//Just reload the scene and hope the new map is better
+			main.ReloadScene();
+			//Create some new paths? 
+			//Figure out which node on the left side is closest to the right side distance wise that is farthest away from the enemy base?
+
+			/* //Restore all edges
+			 foreach(KeyValuePair<SparseCity, SparseCity> edge in removedEdges)
+			 {
+				 SparseCity u = edge.Key;
+				 SparseCity v = edge.Value;
+				 u.connectedCities.Add(v);
+				 v.connectedCities.Add(u);
+			 }
+			 removedEdges.Clear();
+
+			 //Pick a vertex on the left and one on the right and join them together, test how many disjoint paths there are and if the number is satisfactory then add it to the real graph, otherwise, remove it and then try with two different cities
+			 // This is terrible but not sure of a better way right now x_x [AT] 
+
+			 //Pick a vertex on left that is rightmost that is not connected to a node to it's right and build a small list and do the same on the right side... then join them together if they are approximately height level with eachother.
+
+			 //Left side
+			 int NUM_TO_COLLECT = 2;
+			 List<City> citiesOnTheLeft = new List<City>();
+			 int numCities = map.CitiesOnLeft.Count;
+			 int index = map.CitiesOnLeft.Count - 1;
+			 while (citiesOnTheLeft.Count < NUM_TO_COLLECT)
+			 {
+				 City cityToAdd = map.CitiesOnLeft[numCities - 1 - index];
+				 bool shouldAdd = true;
+				 foreach(City adjacentCity in cityToAdd.GetConnectedCities())
+				 {
+					 if(adjacentCity.GetTile().coordinates.x > cityToAdd.GetTile().coordinates.x)
+					 {
+						 shouldAdd = false;
+						 break;
+					 }
+				 }
+				 if(shouldAdd == true)
+				 {
+					 citiesOnTheLeft.Add(cityToAdd);
+				 }
+			 }
+
+			 //Right side
+			 List<City> citiesOnTheRight = new List<City>();
+			 numCities = map.CitiesOnRight.Count;
+			 index = map.CitiesOnRight.Count - 1;
+			 // Multiply by two so we have better options for our vertex on the left
+			 while(citiesOnTheRight.Count < NUM_TO_COLLECT*2)
+			 {
+				 City cityToAdd = map.CitiesOnRight[numCities - 1 - index];
+				 // Check if this city has another neighbors that are to it's left, if there are then it's "probably" not a city that would be suitable for a new path
+				 //This is because if it has neighbors on the left it probably already connects to the player's city in an easy way
+				 bool shouldAdd = true;
+				 foreach (City adjacentCity in cityToAdd.GetConnectedCities())
+				 {
+					 if (adjacentCity.GetTile().coordinates.x < cityToAdd.GetTile().coordinates.x)
+					 {
+						 shouldAdd = false;
+						 break;
+					 }
+				 }
+				 if(shouldAdd == true)
+				 {
+					 citiesOnTheRight.Add(cityToAdd);
+				 }
+			 }
+
+			 //Pick the first vertex from the left list, and find the closest right vertex in the right list
+			 foreach(City leftCity in citiesOnTheLeft)
+			 {
+				 City closestRightCity = null;
+				 int closestDistance = 99999;
+				 foreach (City rightCity in citiesOnTheRight)
+				 {
+					 int distance = getDistanceBetweenTiles(leftCity.GetTile(), rightCity.GetTile());
+					 if (distance < closestDistance)
+					 {
+						 closestRightCity = rightCity;
+						 closestDistance = distance;
+					 }
+				 }
+				 Debug.Log("Closest distance is: " + closestDistance + " for city: " + closestRightCity.cityId);
+			 }
+			 */
+		}
+
+		//Remove reported edges from the graph
+
 	}
 
-	/// <summary>
-	/// 
-	/// </summary>
-	/// <param name="u">The start city</param>
-	/// <param name="v">The end city</param>
-	/// <param name="onTheWayCity">The city that we are deciding is on the path or not</param>
-	/// <returns></returns>
-	private bool BFSWithPassThroughCheck(City u, City v, City onTheWayCity)
+	private int FindDisjointPaths()
 	{
-		Dictionary<City, City> prev = new Dictionary<City, City>();
-		Dictionary<City, bool> flag = new Dictionary<City, bool>();
+		return 0;
+	}
 
-		List<City> cities = u.GetConnectedCities();
-		foreach(City city in map.Cities)
+	private Queue<SparseCity> BFS(SparseCity u, SparseCity v, Dictionary<int, SparseCity> sparseCities)
+	{
+		Queue<SparseCity> finalPath = new Queue<SparseCity>();
+		SparseCity x = u;
+		Queue<SparseCity> citiesToLookAt = new Queue<SparseCity>();
+		Dictionary<SparseCity, bool> visited = new Dictionary<SparseCity, bool>();
+		Dictionary<SparseCity, SparseCity> path = new Dictionary<SparseCity, SparseCity>();
+		foreach (SparseCity city in sparseCities.Values)
 		{
-			prev.Add(city, null);
-			flag.Add(city, false);
+			visited[city] = false;
+			path[city] = null;
 		}
-		Queue<City> queue = new Queue<City>();
-		flag[u] = true;
-		queue.Enqueue(u);
-		while(queue.Count > 0)
+
+		visited[x] = true;
+		citiesToLookAt.Enqueue(x);
+		while (citiesToLookAt.Count > 0)
 		{
-			City c = queue.Dequeue();
-			foreach(City city in c.GetConnectedCities())
+			x = citiesToLookAt.Dequeue();
+			foreach (SparseCity w in x.connectedCities)
 			{
-				if(flag[city] == false)
+				if (visited[w] == false)
 				{
-					flag[city] = true;
-					prev[city] = c;
-					queue.Enqueue(city);
+					visited[w] = true;
+					path[w] = x;
+					citiesToLookAt.Enqueue(w);
 				}
 			}
 		}
 
-		//Trace back
-		City traceBack = v;
-		while(prev[traceBack] != null)
+		//Print path from v to u
+		x = v;
+		Stack<SparseCity> cityStack = new Stack<SparseCity>();
+		while (x != null)
 		{
-			if(traceBack == onTheWayCity)
+			cityStack.Push(x);
+			x = path[x];
+		}
+		SparseCity lastCity = cityStack.Peek();
+		if(lastCity.cityId != u.cityId)
+		{
+			Debug.Log("no path found");
+			finalPath.Clear();
+			return finalPath;
+		}
+		StringBuilder shortestPath = new StringBuilder();
+		while (cityStack.Count > 0)
+		{
+			if (cityStack.Count == 1)
 			{
-				//return false;
+				SparseCity city = cityStack.Pop();
+				finalPath.Enqueue(city);
+				shortestPath.AppendFormat("{0}", city.cityId);
+			}
+			else
+			{
+				SparseCity city = cityStack.Pop();
+				finalPath.Enqueue(city);
+				shortestPath.AppendFormat("{0}->", city.cityId);
+			}
+		}
+		return finalPath;
+	}
+
+	private Queue<City> BFS(City u, City v)
+	{
+		Queue<City> finalPath = new Queue<City>();
+		City x = u;
+		Queue<City> citiesToLookAt = new Queue<City>();
+		Dictionary<City, bool> visited = new Dictionary<City, bool>();
+		Dictionary<City, City> path = new Dictionary<City, City>();
+		foreach(City city in map.Cities)
+		{
+			visited[city] = false;
+			path[city] = null;
+		}
+
+		visited[x] = true;
+		citiesToLookAt.Enqueue(x);
+		while(citiesToLookAt.Count > 0)
+		{
+			x = citiesToLookAt.Dequeue();
+			foreach(City w in x.GetConnectedCities())
+			{
+				if(visited[w] == false)
+				{
+					visited[w] = true;
+					path[w] = x;
+					citiesToLookAt.Enqueue(w);
+				}
 			}
 		}
 
-		return false;
+		//Print path from v to u
+		x = v; 
+		Stack<City> cityStack = new Stack<City>();
+		while (x != u)
+		{
+			cityStack.Push(x);
+			x = path[x];
+		}
+		StringBuilder shortestPath = new StringBuilder();
+		while(cityStack.Count > 0)
+		{
+			if(cityStack.Count == 1)
+			{
+				City city = cityStack.Pop();
+				finalPath.Enqueue(city);
+				shortestPath.AppendFormat("{0}", city.cityId);
+			}
+			else
+			{ 
+				City city = cityStack.Pop();
+				finalPath.Enqueue(city);
+				shortestPath.AppendFormat("{0}->", city.cityId);
+			}
+		}
+		Debug.Log(shortestPath.ToString());
+
+		return finalPath;
+
 	}
 
 	private void spawnTiles () {
@@ -103,8 +329,7 @@ public class MapGenerator : MonoBehaviour {
 
 				Tile tile = go.GetComponent<Tile> ();
 				map.TileGrid[i,j] = tile;
-				tile.X = i;
-				tile.Y = j;
+				tile.coordinates = new Vector2(i, j);
 			}
 		}
 	}
@@ -178,7 +403,7 @@ public class MapGenerator : MonoBehaviour {
 		// Build a dictionary which has lists of all the cities in each column
 		Dictionary<int, List<City>> unconnectedCities = new Dictionary<int, List<City>> ();
 		foreach (City nextCity in map.Cities) {
-			int x = nextCity.GetTile ().X;
+			int x = (int) nextCity.GetTile ().coordinates.x;
 
 			if (unconnectedCities.ContainsKey (x)) {
 				unconnectedCities [x].Add (nextCity);
@@ -498,7 +723,7 @@ public class MapGenerator : MonoBehaviour {
 	}
 
 	private int getDistanceBetweenTiles (Tile tile1, Tile tile2) {
-		return Mathf.Abs (tile2.X - tile1.X) + Mathf.Abs (tile2.Y - tile1.Y);
+		return (int) Vector2.Distance(tile1.coordinates, tile2.coordinates);
 	}
 
 	public struct PossibleConnection {
@@ -545,6 +770,15 @@ public class MapGenerator : MonoBehaviour {
 		counter++;
 		if (f != Faction.Neutral) {
 			city.IM.SetCompleteControl (f);
+		}
+
+		if (x < map.Width / 2)
+		{
+			map.CitiesOnLeft.Add(city);
+		}
+		else
+		{
+			map.CitiesOnRight.Add(city);
 		}
 		return city;
 	}

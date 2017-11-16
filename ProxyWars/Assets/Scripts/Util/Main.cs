@@ -63,7 +63,7 @@ public class Main : MonoBehaviour {
 
 	private void handleKeyboardDebugInput () {
 		if (Input.GetKeyDown ("r")) {
-			UnityEngine.SceneManagement.SceneManager.LoadScene (0);	
+			ReloadScene();
 		}
 
 		if (Input.GetKeyDown ("p")) {
@@ -78,5 +78,10 @@ public class Main : MonoBehaviour {
 		}
 	}
 
+	public void ReloadScene()
+	{
+		UnityEngine.SceneManagement.SceneManager.LoadScene(0);
+
+	}
 
 }
